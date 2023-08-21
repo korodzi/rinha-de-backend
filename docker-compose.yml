@@ -1,0 +1,28 @@
+version: '3.5'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    container_name: postgres
+#    volumes:
+#      - ./pgdata:/var/lib/postgresql/data:Z
+    ports:
+      - '5432:5432'
+
+# TODO: descomentar ao gerar imagem final
+#  app:
+#    build:
+#      context: .
+#      dockerfile: dockerfile
+#    container_name: rinha-de-backend
+#    environment:
+#      - PORT=3000
+#    ports:
+#      - '3000:3000'
+#    depends_on:
+#      - db
+#    volumes:
+#      - ./src:/app/src
