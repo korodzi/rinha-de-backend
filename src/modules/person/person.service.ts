@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -10,12 +11,15 @@ import { Person } from './entities/person.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryDto } from './dto/query.dto';
 import { Contains } from '../../utils/typeorm/Contains';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class PersonService {
   constructor(
     @InjectRepository(Person)
     private readonly personRepository: Repository<Person>,
+    @Inject(CACHE_MANAGER) private cacheService: Cache,
   ) {}
 
   async create({
@@ -24,36 +28,56 @@ export class PersonService {
     nascimento,
     stack,
   }: CreateDto): Promise<Person> {
-    const person = await this.personRepository.findOneBy({ apelido });
+    const exists = await this.personRepository.findOneBy({ apelido });
 
-    if (person) {
+    if (exists) {
       throw new UnprocessableEntityException();
     }
 
-    return this.personRepository.save({
+    const person = await this.personRepository.save({
       nome,
       apelido,
       nascimento,
       stack,
     });
+
+    await this.cacheService.set(person.id, person);
+
+    return person;
   }
 
   async getById(id: string): Promise<Person> {
+    const cached = await this.cacheService.get<Person>(id);
+
+    if (cached) {
+      return cached;
+    }
+
     const person = await this.personRepository.findOneBy({ id });
 
     if (!person) {
       throw new NotFoundException();
     }
 
+    await this.cacheService.set(person.id, person);
+
     return person;
   }
 
-  getByQuery({ nome, apelido, stack }: QueryDto) {
+  async getByQuery({ nome, apelido, stack }: QueryDto) {
     if (!nome && !apelido && !stack) {
       throw new BadRequestException();
     }
 
-    return this.personRepository.find({
+    const id = `${nome}&${apelido}&${stack}`;
+
+    const cached = await this.cacheService.get<Person[]>(id);
+
+    if (cached) {
+      return cached;
+    }
+
+    const persons = await this.personRepository.find({
       where: {
         ...(nome && { nome: ILike(`%${nome}%`) }),
         ...(apelido && { apelido: ILike(`%${apelido}%`) }),
@@ -61,6 +85,10 @@ export class PersonService {
       },
       take: 50,
     });
+
+    await this.cacheService.set(id, persons);
+
+    return persons;
   }
 
   count() {

@@ -27,7 +27,8 @@ export class PersonController {
   )
   async create(@Body() dto: CreateDto, @Response() res: Res) {
     const ret = await this.personService.create(dto);
-    return res.set({ Location: `/pessoas/${ret.id}` }).json(ret);
+    res.set({ Location: `/pessoas/${ret.id}` }).json(ret);
+    return res;
   }
 
   @Get('pessoas/:id')
