@@ -8,8 +8,6 @@ services:
     environment:
       - POSTGRES_PASSWORD=postgres
     container_name: postgresql
-    #    volumes:
-    #      - ./pgdata:/var/lib/postgresql/data:Z
     ports:
       - '5432:5432'
     deploy:
