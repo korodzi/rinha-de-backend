@@ -9,7 +9,6 @@ import { CreateDto } from './dto/create.dto';
 import { ILike, Repository } from 'typeorm';
 import { Person } from './entities/person.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryDto } from './dto/query.dto';
 import { Contains } from '../../utils/typeorm/Contains';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
@@ -64,29 +63,27 @@ export class PersonService {
     return person;
   }
 
-  async getByQuery({ nome, apelido, stack }: QueryDto) {
-    if (!nome && !apelido && !stack) {
+  async getByQuery(query: string) {
+    if (!query) {
       throw new BadRequestException();
     }
 
-    const id = `${nome}&${apelido}&${stack}`;
-
-    const cached = await this.cacheService.get<Person[]>(id);
+    const cached = await this.cacheService.get<Person[]>(query);
 
     if (cached) {
       return cached;
     }
 
     const persons = await this.personRepository.find({
-      where: {
-        ...(nome && { nome: ILike(`%${nome}%`) }),
-        ...(apelido && { apelido: ILike(`%${apelido}%`) }),
-        ...(stack && { stack: Contains(`${stack}`) }),
-      },
+      where: [
+        { nome: ILike(`%${query}%`) },
+        { apelido: ILike(`%${query}%`) },
+        { stack: Contains(`${query}`) },
+      ],
       take: 50,
     });
 
-    await this.cacheService.set(id, persons);
+    await this.cacheService.set(query, persons);
 
     return persons;
   }

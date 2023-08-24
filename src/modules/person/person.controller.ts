@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { PersonService } from './person.service';
 import { CreateDto } from './dto/create.dto';
-import { QueryDto } from './dto/query.dto';
 import { Response as Res } from 'express';
 
 @Controller()
@@ -37,7 +36,7 @@ export class PersonController {
   }
 
   @Get('pessoas')
-  getByQuery(@Query() query: QueryDto) {
+  getByQuery(@Query('t') query: string) {
     return this.personService.getByQuery(query);
   }
 
